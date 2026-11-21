@@ -15,13 +15,13 @@ const ResumeBuilder = () => {
             return;
         }
 
-        setLoading(true);
+        setLoading(true); s
 
         try {
             const res = await fetch('/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'resume', input }),
+                body: JSON.stringify({ type: 'letter', input }),
             });
 
             const rawText = await res.text();
