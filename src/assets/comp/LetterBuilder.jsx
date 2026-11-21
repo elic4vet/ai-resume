@@ -1,9 +1,6 @@
 import { useState } from 'react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
 
 const LetterBuilder = () => {
-
     const [input, setInput] = useState('');
     const [output, setOutput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -18,34 +15,30 @@ const LetterBuilder = () => {
             return;
         }
 
-        const apiKey = import.meta.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            setError('API key not found');
-            return;
-        }
-
         setLoading(true);
 
         try {
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({
-                model: 'gemini-flash-latest',
+            const res = await fetch('/api/generate-letter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ input }),
             });
 
-            const prompt = `Create a professional cover letter based on this job posting : ${input}`;
+            const data = await res.json();
 
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to generate');
+            }
 
-            setOutput(text);
+            setOutput(data.text);
         } catch (err) {
             console.error('Error details:', err);
+            const message = err?.message || 'Unknown error occurred';
 
-            if (err.message.includes('quota') || err.message.includes('429')) {
+            if (message.includes('quota') || message.includes('429')) {
                 setError('Rate limit exceeded. Please wait a minute and try again.');
             } else {
-                setError(`Failed to generate: ${err.message} `);
+                setError(`Failed to generate: ${message}`);
             }
         } finally {
             setLoading(false);
@@ -137,7 +130,6 @@ const LetterBuilder = () => {
                                 onClick={() => setOutput('')}
                             >
                                 Close
-
                             </button>
                         </div>
                     </div>

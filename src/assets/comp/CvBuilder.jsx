@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const ResumeBuilder = () => {
     const [input, setInput] = useState('');
@@ -16,38 +15,44 @@ const ResumeBuilder = () => {
             return;
         }
 
-        const apiKey = import.meta.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            setError('API key not found');
-            return;
-        }
-
         setLoading(true);
 
         try {
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({
-                model: 'gemini-flash-latest',
+            const res = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'resume', input }),
             });
 
-            const prompt = `Create a professional resume based on this job posting: ${input}`;
+            const data = await res.json();
 
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to generate');
+            }
 
-            setOutput(text);
+            setOutput(data.text);
         } catch (err) {
             console.error('Error details:', err);
+            const message = err?.message || 'Unknown error occurred';
 
-            if (err.message.includes('quota') || err.message.includes('429')) {
+            if (message.includes('quota') || message.includes('429')) {
                 setError('Rate limit exceeded. Please wait a minute and try again.');
             } else {
-                setError(`Failed to generate: ${err.message}`);
+                setError(`Failed to generate: ${message}`);
             }
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDownload = () => {
+        const blob = new Blob([output], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'resume.txt';
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     return (
@@ -112,15 +117,7 @@ const ResumeBuilder = () => {
                         <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex gap-2">
                             <button
                                 className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-all font-medium text-sm shadow-sm hover:shadow-md"
-                                onClick={() => {
-                                    const text = output;
-                                    const blob = new Blob([text], { type: 'text/plain' });
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = 'resume.txt';
-                                    a.click();
-                                }}
+                                onClick={handleDownload}
                             >
                                 Download
                             </button>
@@ -135,7 +132,6 @@ const ResumeBuilder = () => {
                                 onClick={() => setOutput('')}
                             >
                                 Close
-
                             </button>
                         </div>
                     </div>
