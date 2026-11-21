@@ -4,7 +4,7 @@ export const config = {
     maxDuration: 30,
 };
 
-const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+const MODELS = ['gemini-3.8-flash', 'gemini-flash-latest'];
 
 async function generateWithFallback(genAI, prompt) {
     let lastError;
@@ -18,13 +18,15 @@ async function generateWithFallback(genAI, prompt) {
         } catch (err) {
             lastError = err;
             const message = err?.message || '';
-            const isRetryable =
+            const shouldTryNextModel =
+                message.includes('404') ||
+                message.includes('not found') ||
                 message.includes('503') ||
                 message.includes('Service Unavailable') ||
                 message.includes('overloaded') ||
                 message.includes('429');
 
-            if (!isRetryable) {
+            if (!shouldTryNextModel) {
                 throw err;
             }
         }
