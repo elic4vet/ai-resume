@@ -15,7 +15,7 @@ const ResumeBuilder = () => {
             return;
         }
 
-        setLoading(true); s
+        setLoading(true);
 
         try {
             const res = await fetch('/api/generate', {
