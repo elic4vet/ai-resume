@@ -24,22 +24,25 @@ const ResumeBuilder = () => {
                 body: JSON.stringify({ type: 'resume', input }),
             });
 
-            const data = await res.json();
+            const rawText = await res.text();
+            let data = null;
+
+            try {
+                data = JSON.parse(rawText);
+            } catch {
+                if (res.status === 504) {
+                    throw new Error('The request timed out. Try shortening your input or retrying.');
+                }
+                throw new Error(`Server error (${res.status}). Please try again in a moment.`);
+            }
 
             if (!res.ok) {
-                throw new Error(data.error || 'Failed to generate');
+                throw new Error(data?.error || `Request failed (${res.status})`);
             }
 
-            setOutput(data.text);
+            setOutput(data.text || '');
         } catch (err) {
-            console.error('Error details:', err);
-            const message = err?.message || 'Unknown error occurred';
-
-            if (message.includes('quota') || message.includes('429')) {
-                setError('Rate limit exceeded. Please wait a minute and try again.');
-            } else {
-                setError(`Failed to generate: ${message}`);
-            }
+            setError(err instanceof Error ? err.message : 'Failed to generate');
         } finally {
             setLoading(false);
         }
@@ -51,7 +54,9 @@ const ResumeBuilder = () => {
         const a = document.createElement('a');
         a.href = url;
         a.download = 'resume.txt';
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         URL.revokeObjectURL(url);
     };
 

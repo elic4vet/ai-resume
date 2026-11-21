@@ -21,13 +21,22 @@ const LetterBuilder = () => {
             const res = await fetch('/api/generate-letter', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ input }),
+                body: JSON.stringify({ input: input.trim() }),
             });
 
-            const data = await res.json();
+            let data;
+            try {
+                data = await res.json();
+            } catch {
+                data = {};
+            }
 
             if (!res.ok) {
                 throw new Error(data.error || 'Failed to generate');
+            }
+
+            if (!data.text) {
+                throw new Error('No cover letter was returned');
             }
 
             setOutput(data.text);
@@ -108,13 +117,15 @@ const LetterBuilder = () => {
                             <button
                                 className="flex-1 bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-600 transition-all font-medium text-sm shadow-sm hover:shadow-md"
                                 onClick={() => {
-                                    const text = output;
-                                    const blob = new Blob([text], { type: 'text/plain' });
+                                    const blob = new Blob([output], { type: 'text/plain' });
                                     const url = URL.createObjectURL(blob);
                                     const a = document.createElement('a');
                                     a.href = url;
                                     a.download = 'cover-letter.txt';
+                                    document.body.appendChild(a);
                                     a.click();
+                                    a.remove();
+                                    URL.revokeObjectURL(url);
                                 }}
                             >
                                 Download
